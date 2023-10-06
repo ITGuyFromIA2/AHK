@@ -1,0 +1,140 @@
+#SingleInstance Force
+
+;Setting some variables here
+
+;ProgramFiles Directory
+EnvGet, pf, ProgramFiles(x86) ; For 64-bit browsers: ProgramW6432
+
+;Chrome Installation Directory
+dir = %pf%\Google\Chrome\Application ; Browser's drive and directory
+
+;Prefix for URL
+protocol = chrome ; Start of the URL, and also the name of the Windows process
+
+;New Tab Name
+tabName = New Tab - Google Chrome ; How the browser names new tabs
+
+;Passwords Page title
+PassPageTitle = Settings - Password Manager ;
+
+;Bookmarks page title
+BookPageTitle = Bookmarks ;
+
+;FinalPath for export of passwords CSV and favorites file
+FinalPath=%A_MyDocuments%\ChromeExport_2022 ;
+
+;Location of Favorites
+;EnvGet, appLocal, LOCALAPPDATA ;
+EnvGet, appLocal, %A_AppData% ;
+
+;ChromeFavorites=%appLocal%\Google\Chrome\User Data\Default\BookMarks* ;
+ChromeFavorites=%appLocal%\Google\Chrome\Default\BookMarks* ;
+
+
+waitTime=500 ;
+waitTime2=500 ;
+
+
+;Setting a few things BASED on the variables above
+; -------------------------------------
+
+;chrome.exe
+proc = %protocol%.exe ; Full name of the Windows executable file
+app = %dir%\%proc% ; Full path to the browser
+winTitle = ahk_exe %proc% ; Identify the window by the executable file's name
+Menu, Tray, Icon, %app% ; Use the browser's icon for this script
+
+;See whether the browser is already running
+	Process, exist, %proc% ; 
+
+	If ErrorLevel = 0
+	{
+	;	DOES NOT EXIST
+	}
+	Else
+	{
+	Process,Close,%proc% ;need to kill if 
+	}
+
+	;msgbox, Chrome will be (Re)opening shortly ;
+
+;Wait for Chrome to CLOSE all the way, giving it 3 seconds
+	sleep, 3000 ;
+
+;Start Chrome
+	Run, "%app%" "https://nsp.work/r" --hide-crash-restore-bubble
+ 
+;Wait for Chrome to launch
+	WinWait, %winTitle%,, 200
+ 
+If ErrorLevel
+{
+ MsgBox, 48, Error, Browser window was not found.`n`nRef: %A_ScriptFullPath%
+ Exit, 1
+}
+
+;Activate Chrome Window
+	WinActivate, %winTitle%
+
+;Open New tab
+	Send ^t ; Open a new tab in the browser
+
+;Wait for 'New Tab'
+	WinWait, %tabName%,, 20
+	
+If ErrorLevel ; The new browser tab was not found
+ Exit, 1
+
+;Sleep 100ms
+	Sleep, 100
+	
+;Activate the tab
+	WinActivate, %winTitle%
+	Sleep, 100
+
+;Open Passwords page
+	Send %protocol%://settings/passwords{ENTER} ; Open the browser's "p" page
+	WinWait, %PassPageTitle%,, 20
+
+;7x Tabs to get to 'Export' button
+	send {tab 7}
+	sleep, %waitTime% ;(wait specified seconds)
+;Space to select
+	send {space}
+	sleep, %waitTime% ;(wait specified seconds)  
+
+;Space AGAIN to select
+	send {space}
+	sleep, %waitTime% ;(wait specified seconds)  
+
+;Tabx2 to get to proper 'Export button'
+	send {tab 2}
+	sleep, %waitTime% ;(wait specified seconds) 
+
+;Space to confirm
+	send {space}
+
+;Create Destination Directory if not exists
+FileCreateDir, %FinalPath%
+
+;Wait for 'Save As' page
+	WinWait, Save As ;
+
+;Send Final Path
+	send, %FinalPath% ;
+	sleep, %waitTime2% ;(wait specified seconds) 
+
+;Send 'Enter' to confirm path
+	send {enter} ;
+	sleep, %waitTime2% ;(wait specified seconds) 
+
+;Send Enter again for filename confirmation using default
+	send {enter} ;
+
+;WAIT for 'Save As' to close
+	winwaitclose, Save As ;
+
+;*************************DONE exporting passwords to Documents\ChromeExport_2022*************************
+
+FileCopy, %ChromeFavorites%, %FinalPath%\*.* , 1 ;
+Exit
